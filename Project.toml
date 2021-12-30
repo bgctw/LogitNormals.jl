@@ -1,0 +1,13 @@
+name = "LogitNormals"
+uuid = "e463a79d-e278-44ac-bc4f-a7f96e6b365e"
+authors = ["Thomas Wutzler <twutz@bgc-jena.mpg.de> and contributors"]
+version = "0.1.0"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+julia = "1"
+
+[targets]
+test = ["Test"]
