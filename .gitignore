@@ -4,4 +4,7 @@
 /Manifest.toml
 /docs/build/
 /tmp/
-/inst/*.ipynb
+/jmd/*.ipynb
+/jmd/jl_*/
+/jmd/*.md
+/jmd/figures/

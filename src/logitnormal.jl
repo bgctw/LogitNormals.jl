@@ -30,7 +30,6 @@ function matchModeUpper(
         (muTry[max(1,iMin-1)], muTry[min(nTry,iMin+1)]) :
         (muTry[max(1,iMin+1)], muTry[min(nTry,max(1,iMin-1))])
     resOpt = optimize(oF, interval...)
-    @show ofMuTry, iMin, interval, resOpt
     Optim.converged(resOpt) || error("could not find minimum")
     μ = Optim.minimizer(resOpt)
     σ = sqrt((logitMode - μ)/(2*mode - 1))
@@ -58,53 +57,30 @@ function ofLogitNormalModeUpper(mu, mode, logitMode, logitUpper, perc)
 end
 
 function fit_mode_flat(::Type{LogitNormal}, mode::T, ::Val{nTry} = Val(40)) where {T<:Real,nTry}
-    # broader distributions are most flat at the edges, i.e. most close to zero
-    perc = 1.0 - 1e-6
-    upper = 0.0
-    mode == 0.5 && return matchMedianUpper(LogitNormal, 0.5, upper; perc=perc)
-    # handle case with mode left of 0.5 by afterwards providing negative mu
-    is_mode_left = mode < 0.5 
-    moder = is_mode_left ? (1-mode) : mode 
-    logitMode = logit(moder)
-    upperMu = abs(logitMode) - eps() 
-    muTry = SVector{nTry}(
-        sign(logitMode) .* log.(range(1,stop=exp(upperMu),length=nTry)))
-    oF(mu) = ofLogitNormalModeUpperFlat(mu, moder, logitMode)
-    ofMuTry = oF.(muTry)
-    iMin = argmin(ofMuTry)
-    interval = (muTry[max(1,iMin-1)], muTry[min(nTry,iMin+1)]) 
-    resOpt = optimize(oF, interval...)
-    @show ofMuTry, iMin, interval, resOpt
-    Optim.converged(resOpt) || error("could not find minimum")
-    μr = Optim.minimizer(resOpt)
-    σ = sqrt((logitMode - μr)/(2*moder - 1))
-    μ = is_mode_left ? -μr : μr
-    LogitNormal{T}(μ,σ)
+    mode == 0.5 && return(LogitNormal{T}(0.0, sqrt(2)))
+    is_right = mode > 0.5
+    mode_r = is_right ? mode : 1.0 - mode
+    res_opt = optimize(x -> of_mode_flat(x, mode_r, logit(mode_r)), 0.0, 0.5)
+    Optim.converged(res_opt) || error("could not find minimum")
+    xt = res_opt.minimizer
+    σ2 = (1/xt + 1/(1-xt))/2
+    μr = logit(mode_r) - σ2*(2.0*mode_r - 1.0)
+    μ = is_right ? μr : -μr
+    LogitNormal{T}(μ,sqrt(σ2))
+end
+
+function of_mode_flat(x, m, logitm = logit(m))
+  # lhs = 1/x + 1/(1-x)
+  # rhs = (logitm - logit(x))/(m-x)
+  # lhs = (m-x)/x + (m-x)/(1-x)
+  # rhs = (logitm - logit(x))
+  lhs = m/x + (m-1)/(1-x)
+  rhs = logitm - logit(x)
+  d = lhs - rhs
+  d*d
 end
 
 
-function ofLogitNormalModeUpperFlat(mu, xmode, logitMode)
-    # given mu and mode, we can calculate sigma, 
-    # predict the percentile of logitUpper
-    # and return the squared difference as cost to be minimized
-    #
-    # for flat we optimize
-    logitUpper = 0.0
-    perc = 1.0 - 1e-6
-    sigma2 = (logitMode - mu)/(2.0*xmode - 1.0)
-    sigma2 > 0.0 || return prevfloat(Inf)
-    predp = normcdf(mu, sqrt(sigma2), logitUpper)
-    diff_pupper = predp - perc
-    # And we add a penalty for negative slopes left of the mode
-    # to prevent bimodal distributions
-    # Hence it only works for the case of mode > 0.5
-    # For the other case negate mu: (1-X) ~ logitnormal(-mu, sigma)
-    # logitx = logit.([0.05,0.1,0.2,0.3,0.4,0.5])
-    logitx = @SVector [-3.0, -2.2, -1.4, -0.8, -0.4, 0.0]
-    px = normcdf.(mu, sqrt(sigma2), logitx)
-    dpx = Base.diff(px)
-    penalty_negslope = 1e10*min(0,minimum(dpx))^2
-    diff_pupper*diff_pupper + penalty_negslope
-end
+
   
 

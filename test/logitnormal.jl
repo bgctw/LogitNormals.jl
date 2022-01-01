@@ -42,15 +42,30 @@ end
     #plot(g)
 end
 
-#@testset "fit by single mode and flat" begin
-    #plot(g); vline!([mode(g)])
-    # median
-    #g = fit_mode_quantile(LogitNormal, 0.68, @qp(0.71,0.99))
-    xmode = 0.2
-    xmode = 0.9
-    #g = fit(LogitNormal, xmode, @qp(0.999,1e-4), Val(:mode))
-    g = fit_mode_flat(LogitNormal, xmode)
-    @test isapprox( mode(g), xmode, atol=1e-4)
-    
-    plot(g)
+function is_logit_slope_monotone(d, upper=0.5, lower=0.0, decreasing = false) 
+  x = range(lower,upper,41)[2:40]	# plotting grid
+  dx = pdf.(d, x)	#density function
+  if decreasing
+    all(diff(dx) .<= 0)
+  else
+    all(diff(dx) .>= 0)
+  end
+end
+
+@testset "fit by single mode and flat" begin
+    d9 = d = fit_mode_flat(LogitNormal, 0.9)
+    @test isapprox( mode(d), 0.9, atol=1e-4)
+    @test is_logit_slope_monotone(d, 0.9)
+    @test is_logit_slope_monotone(d, 0.0, 0.9, true)
+    d1 = d = fit_mode_flat(LogitNormal, 0.1)
+    @test isapprox( mode(d), 0.1, atol=1e-4)
+    @test is_logit_slope_monotone(d, 0.1)
+    @test is_logit_slope_monotone(d, 0.0, 0.1, true)
+    @test d1.σ == d9.σ
+    @test d1.μ == -d9.μ
+    d5 = d = fit_mode_flat(LogitNormal, 0.5)
+    @test isapprox( mode(d), 0.5, atol=1e-4)
+    @test is_logit_slope_monotone(d, 0.5)
+    @test is_logit_slope_monotone(d, 0.0, 0.5, true)
+    #plot(d1)
 end
