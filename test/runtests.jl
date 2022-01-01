@@ -1,6 +1,7 @@
 using LogitNormals
+using Distributions, DistributionFits
 using Test
 
 @testset "LogitNormals.jl" begin
-    # Write your tests here.
+    include("logitnormal.jl")
 end
