@@ -1,5 +1,3 @@
-# removed from Distribution.jl to here to avoid dependencies
-
 mean(d::LogitNormal; kwargs...) = estimateMean(d,kwargs...) # moved to NormalTransforms
 
 function mode(d::LogitNormal)

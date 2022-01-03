@@ -1,3 +1,8 @@
+# Deprecated: Moved to DistributionFits.jl
+
+functionality moved to package [DistributionFits.jl](https://github.com/bgctw/DistributionFits.jl)
+
+
 # LogitNormals
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://bgctw.github.io/LogitNormals.jl/stable)
